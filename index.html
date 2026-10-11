@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1118">
+  <meta name="description" content="Личный трекер привычек: отмечайте дни, следите за прогрессом и сериями.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./app-icon.svg" type="image/svg+xml">
+  <title>Ритм — трекер привычек</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080d13;
+      --panel: #111922;
+      --panel-2: #151f29;
+      --line: #263340;
+      --muted: #81909e;
+      --text: #e8eef2;
+      --green: #20d477;
+      --green-2: #0fa85b;
+      --green-dim: #163a2b;
+      --red: #fa6a73;
+      --yellow: #e8bd55;
+      --radius: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; color: var(--text); background: radial-gradient(ellipse at 50% -25%, #172a29 0, var(--bg) 55%); }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 22px 24px 42px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; color: #06140d; background: var(--green); border-radius: 13px; box-shadow: 0 0 24px #20d47728; }
+    .brand-mark svg { width: 24px; height: 24px; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+    .subtitle { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .top-actions, .month-picker { display: flex; align-items: center; gap: 8px; }
+    .month-picker { padding: 5px; border: 1px solid var(--line); background: #0c131a; border-radius: 12px; }
+    .month-picker select { width: 156px; border: 0; background: transparent; color: var(--text); font-size: 13px; font-weight: 650; outline: none; }
+    .icon-button, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+    .icon-button { width: 36px; padding: 0; font-size: 18px; }
+    .button { padding: 0 13px; font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .button.primary { border-color: transparent; color: #04150b; background: var(--green); }
+    .button:hover, .icon-button:hover { border-color: #526475; background-color: #1b2732; }
+    .button.primary:hover { background: #52e796; }
+    .button:active, .icon-button:active { transform: translateY(1px); }
+    .button.small { min-height: 32px; padding: 0 10px; }
+    .icon-button:focus-visible, .button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .sync-pill { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #647382; }
+    .sync-pill.online .sync-dot { background: var(--green); box-shadow: 0 0 10px #20d47788; }
+    .sync-pill.syncing .sync-dot { background: var(--yellow); animation: pulse 1s infinite alternate; }
+    @keyframes pulse { to { opacity: .35; } }
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(145deg, #141e28, #101720 75%); box-shadow: 0 12px 32px #00000017; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    .section-heading h2 { margin: 0; font-size: 13px; letter-spacing: .01em; }
+    .section-heading p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .eyebrow { color: var(--green); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .metric { display: flex; align-items: center; gap: 12px; min-height: 78px; padding: 14px 16px; }
+    .metric-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 12px; color: var(--green); background: #143525; font-size: 17px; }
+    .metric-label { color: var(--muted); font-size: 10px; }
+    .metric-value { margin-top: 4px; font-size: 21px; font-weight: 750; letter-spacing: -.04em; }
+    .metric-value small { margin-left: 2px; color: var(--muted); font-size: 10px; font-weight: 550; letter-spacing: 0; }
+    .charts { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(250px, 1fr) minmax(230px, .85fr); gap: 12px; margin-bottom: 12px; }
+    .chart-panel { min-width: 0; min-height: 214px; padding: 17px 18px 14px; }
+    .chart-total { color: var(--muted); font-size: 10px; }
+    .bars { display: flex; align-items: flex-end; gap: 5px; height: 125px; padding: 0 1px; border-bottom: 1px solid #34414c; background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), #25313b calc(25% - 1px), #25313b 25%); }
+    .bar-column { position: relative; display: flex; flex: 1 1 0; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 3px; height: 100%; }
+    .bar-column .bar { width: min(100%, 15px); min-height: 2px; border-radius: 4px 4px 1px 1px; background: linear-gradient(180deg, #39e78c, #12a75b); box-shadow: 0 0 12px #20d4771a; transition: height .25s ease; }
+    .bar-column.today .bar { background: #82f5b4; box-shadow: 0 0 15px #20d47755; }
+    .bar-labels { display: flex; justify-content: space-between; gap: 3px; padding-top: 7px; color: #72818f; font-size: 9px; }
+    .bar-labels span { flex: 1 1 0; min-width: 0; text-align: center; }
+    .bar-labels .hidden-label { visibility: hidden; }
+    .empty-chart { display: grid; place-items: center; height: 125px; color: var(--muted); font-size: 12px; text-align: center; }
+    .chart-legend { display: flex; align-items: center; gap: 7px; margin-top: 11px; color: var(--muted); font-size: 10px; }
+    .legend-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--green); }
+    .weeks { display: flex; align-items: flex-end; gap: 10px; height: 125px; padding: 0 4px; border-bottom: 1px solid #34414c; background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), #25313b calc(25% - 1px), #25313b 25%); }
+    .week-column { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+    .week-column .bar { width: min(100%, 34px); min-height: 3px; border-radius: 5px 5px 1px 1px; background: linear-gradient(180deg, #39e78c, #12a75b); transition: height .25s ease; }
+    .week-column span { margin-top: 7px; color: #91a0ad; font-size: 9px; white-space: nowrap; }
+    .ring-layout { display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 139px; }
+    .ring { display: grid; place-items: center; width: 112px; height: 112px; flex: 0 0 112px; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--value) * 1%), #293640 0); position: relative; }
+    .ring::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: #121b24; }
+    .ring-center { position: relative; display: grid; text-align: center; }
+    .ring-center strong { font-size: 25px; letter-spacing: -.06em; }
+    .ring-center span { color: var(--muted); font-size: 9px; }
+    .ring-stats { display: grid; gap: 10px; min-width: 80px; }
+    .ring-stat { display: grid; gap: 2px; }
+    .ring-stat strong { font-size: 15px; }
+    .ring-stat span { color: var(--muted); font-size: 9px; }
+    .pace-note { padding-top: 10px; border-top: 1px solid #25313b; color: var(--muted); font-size: 10px; }
+    .pace-note strong { color: var(--green); }
+    .tracker-layout { display: grid; grid-template-columns: minmax(0, 1fr) 246px; align-items: start; gap: 12px; }
+    .tracker-panel { min-width: 0; padding: 17px 17px 14px; }
+    .tracker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .tracker-head h2 { margin: 0; font-size: 13px; }
+    .tracker-head p { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+    .legend { display: flex; align-items: center; gap: 11px; color: var(--muted); font-size: 9px; white-space: nowrap; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-box { width: 10px; height: 10px; border: 1px solid #41515d; border-radius: 3px; }
+    .legend-box.checked { border-color: var(--green-2); background: var(--green); }
+    .table-scroll { overflow: auto; max-height: 425px; border: 1px solid #27343f; border-radius: 11px; scrollbar-color: #35434f #111922; scrollbar-width: thin; }
+    table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+    th, td { padding: 0; border-right: 1px solid #202c36; border-bottom: 1px solid #202c36; text-align: center; }
+    thead th { position: sticky; z-index: 2; top: 0; height: 43px; color: #a5b1bb; background: #121c25; font-size: 9px; font-weight: 650; }
+    thead .habit-col { position: sticky; left: 0; z-index: 4; min-width: 205px; text-align: left; }
+    .week-row th { top: 0; height: 24px; color: var(--green); background: #15251e; font-size: 8px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .week-row .habit-col { z-index: 5; }
+    .day-row th { top: 24px; height: 38px; }
+    .day-row .habit-col { top: 24px; z-index: 4; }
+    .day-head { width: 27px; min-width: 27px; }
+    .day-head .weekday { display: block; color: #687886; font-size: 7px; text-transform: uppercase; }
+    .day-head .date-num { display: block; margin-top: 3px; }
+    .day-head.today { color: var(--green); background: #183326; }
+    tbody td { height: 36px; background: #101821; }
+    tbody tr:hover td { background-color: #141f29; }
+    tbody .habit-name { position: sticky; left: 0; z-index: 1; min-width: 205px; padding: 0 9px; background: #111a23; text-align: left; }
+    tbody tr:hover .habit-name { background: #17232d; }
+    .habit-cell { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .habit-emoji { width: 19px; flex: 0 0 19px; font-size: 13px; text-align: center; }
+    .habit-title { overflow: hidden; flex: 1; color: #d5dde3; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .habit-actions { display: flex; gap: 2px; opacity: .45; transition: opacity .12s; }
+    tbody tr:hover .habit-actions, .habit-actions:focus-within { opacity: 1; }
+    .tiny-action { display: grid; place-items: center; width: 22px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #98a7b3; cursor: pointer; font-size: 12px; }
+    .tiny-action:hover { color: var(--green); background: #20352b; }
+    .tiny-action.delete:hover { color: var(--red); background: #3a2024; }
+    .cell-button { display: grid; place-items: center; width: 16px; height: 16px; margin: auto; padding: 0; border: 1px solid #35434e; border-radius: 4px; background: #17212a; cursor: pointer; transition: transform .1s, background .12s, border-color .12s; }
+    .cell-button:hover { border-color: #62e99d; transform: scale(1.13); }
+    .cell-button.checked { border-color: #15b863; background: var(--green); box-shadow: 0 0 7px #20d4772a; }
+    .cell-button.checked::after { content: ""; width: 7px; height: 4px; border-bottom: 2px solid #062313; border-left: 2px solid #062313; transform: rotate(-45deg) translate(1px, -1px); }
+    .cell-button:focus-visible { outline: 2px solid #a0ffc5; outline-offset: 1px; }
+    .cell-button.future { border-style: dashed; border-color: #35404a; opacity: .65; }
+    .empty-habits { padding: 36px 18px; color: var(--muted); text-align: center; }
+    .empty-habits strong { display: block; margin-bottom: 6px; color: var(--text); font-size: 13px; }
+    .habit-summary { padding: 17px 16px; }
+    .habit-summary h2 { margin: 0; font-size: 13px; }
+    .habit-summary .summary-sub { margin: 4px 0 14px; color: var(--muted); font-size: 10px; }
+    .habit-rank { display: grid; gap: 12px; }
+    .rank-item { min-width: 0; }
+    .rank-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 9px; }
+    .rank-name { overflow: hidden; color: #c4cdd4; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-percent { color: var(--green); font-weight: 750; }
+    .rank-track { height: 4px; overflow: hidden; border-radius: 5px; background: #27333d; }
+    .rank-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #12aa5e, #36e58b); }
+    .summary-empty { padding: 22px 4px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .footnote { margin: 14px 3px 0; color: #71808d; font-size: 10px; line-height: 1.55; }
+    .footnote strong { color: #9eabb5; font-weight: 600; }
+    dialog { width: min(480px, calc(100vw - 28px)); max-height: min(88vh, 760px); padding: 0; overflow: auto; border: 1px solid #364450; border-radius: 18px; background: #111922; color: var(--text); box-shadow: 0 25px 100px #000b; }
+    dialog::backdrop { background: #03070bc4; backdrop-filter: blur(5px); }
+    .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 20px 22px 14px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font-size: 17px; }
+    .dialog-head p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .dialog-body { padding: 18px 22px 22px; }
+    .dialog-close { width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; }
+    .dialog-close:hover { color: white; background: #26323c; }
+    .form-row { display: grid; gap: 7px; margin-bottom: 15px; }
+    .form-row label, .form-label { color: #b4c0c9; font-size: 11px; font-weight: 650; }
+    .form-row input, .form-row select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid #34424e; border-radius: 9px; background: #0c131a; color: var(--text); outline: none; }
+    .form-row input:focus, .form-row select:focus { border-color: var(--green); }
+    .form-help { color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 19px; }
+    .cloud-status { margin-top: 14px; padding: 10px 12px; border: 1px solid #2c3944; border-radius: 9px; color: #aeb9c2; background: #0d141b; font-size: 10px; line-height: 1.5; }
+    .cloud-status.error { border-color: #63353b; color: #ffadb2; background: #25171b; }
+    .cloud-status.success { border-color: #28553c; color: #9be9ba; background: #12241a; }
+    .checkline { display: flex; align-items: flex-start; gap: 9px; color: #aab6c0; font-size: 10px; line-height: 1.45; }
+    .checkline input { margin: 1px 0 0; accent-color: var(--green); }
+    .danger-zone { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .toast { position: fixed; z-index: 10; right: 18px; bottom: 18px; max-width: min(360px, calc(100vw - 36px)); padding: 11px 14px; transform: translateY(14px); opacity: 0; pointer-events: none; border: 1px solid #34444f; border-radius: 11px; color: var(--text); background: #18232d; box-shadow: 0 12px 40px #0008; font-size: 12px; transition: .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 1100px) {
+      .charts { grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr); }
+      .ring-panel { grid-column: 1 / -1; min-height: 150px; }
+      .ring-layout { justify-content: flex-start; min-height: auto; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .app { padding: 14px 12px 28px; }
+      .topbar { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+      .brand { flex: 1 1 100%; }
+      .top-actions { justify-content: space-between; width: 100%; flex-wrap: wrap; }
+      .month-picker { flex: 1 1 auto; justify-content: space-between; }
+      .month-picker select { flex: 1; }
+      .button-label { display: none; }
+      .top-actions > .button { width: 39px; padding: 0; font-size: 17px; }
+      .top-actions > .button span:last-child { display: none; }
+      .sync-pill { flex-basis: 100%; order: 4; padding-left: 4px; }
+      .metrics { gap: 8px; }
+      .metric { min-height: 70px; gap: 9px; padding: 11px 10px; }
+      .metric-icon { width: 32px; height: 32px; flex-basis: 32px; font-size: 15px; }
+      .metric-value { font-size: 19px; }
+      .metric-label { font-size: 9px; }
+      .charts { grid-template-columns: 1fr; gap: 9px; }
+      .chart-panel { min-height: 0; padding: 14px 13px 12px; }
+      .ring-panel { grid-column: auto; }
+      .tracker-layout { grid-template-columns: 1fr; gap: 9px; }
+      .tracker-panel { padding: 14px 11px 12px; }
+      .tracker-head { align-items: flex-start; flex-direction: column; }
+      .legend { padding-left: 1px; }
+      .table-scroll { max-height: 56vh; }
+      thead .habit-col, tbody .habit-name { min-width: 170px; }
+      .day-head { width: 25px; min-width: 25px; }
+      tbody td { height: 34px; }
+      .habit-summary { padding: 15px 14px; }
+      .habit-rank { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; row-gap: 11px; }
+      .footnote { font-size: 9px; }
+    }
+    @media (max-width: 390px) {
+      .brand-mark { width: 38px; height: 38px; flex-basis: 38px; }
+      h1 { font-size: 18px; }
+      .month-picker select { width: 120px; font-size: 12px; }
+      .metric { padding-inline: 8px; }
+      .metric-icon { display: none; }
+      .metric-value { font-size: 18px; }
+      .ring-layout { gap: 12px; }
+      .ring { width: 98px; height: 98px; flex-basis: 98px; }
+      .ring-center strong { font-size: 22px; }
+      .habit-rank { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13.2 9.1 17 19 7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 2.8a9.2 9.2 0 1 0 9.2 9.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div><h1>Ритм</h1><div class="subtitle">Трекер привычек · маленькие шаги каждый день</div></div>
+      </div>
+      <div class="top-actions">
+        <div class="month-picker" aria-label="Выбор месяца">
+          <button class="icon-button" id="prevMonth" type="button" aria-label="Предыдущий месяц">‹</button>
+          <select id="monthSelect" aria-label="Месяц"></select>
+          <button class="icon-button" id="nextMonth" type="button" aria-label="Следующий месяц">›</button>
+        </div>
+        <span class="sync-pill" id="syncPill"><i class="sync-dot"></i><span id="syncLabel">Только в этом браузере</span></span>
+        <button class="button" id="cloudOpen" type="button" title="Синхронизация"><span aria-hidden="true">☁</span><span class="button-label">Синхронизация</span></button>
+        <button class="button" id="importBtn" type="button" title="Импорт резервной копии"><span aria-hidden="true">⇧</span><span class="button-label">Импорт</span></button>
+        <button class="button" id="exportBtn" type="button" title="Экспорт данных"><span aria-hidden="true">⇩</span><span class="button-label">Экспорт</span></button>
+        <button class="button primary" id="addHabitTop" type="button"><span aria-hidden="true">＋</span><span>Новая привычка</span></button>
+      </div>
+    </header>
+
+    <section class="metrics" aria-label="Серии и итоги">
+      <article class="panel metric"><div class="metric-icon" aria-hidden="true">🔥</div><div><div class="metric-label">Серия сейчас</div><div class="metric-value" id="currentStreak">0<small>дней</small></div></div></article>
+      <article class="panel metric"><div class="metric-icon" aria-hidden="true">🏆</div><div><div class="metric-label">Рекорд за месяц</div><div class="metric-value" id="monthRecord">0<small>дней</small></div></div></article>
+      <article class="panel metric"><div class="metric-icon" aria-hidden="true">✅</div><div><div class="metric-label">Дней закрыто полностью</div><div class="metric-value" id="closedDays">0<small>дней</small></div></div></article>
+      <article class="panel metric"><div class="metric-icon" aria-hidden="true">✳</div><div><div class="metric-label">Выполнено отметок</div><div class="metric-value" id="doneCount">0<small>из 0</small></div></div></article>
+    </section>
+
+    <section class="charts" aria-label="Прогресс">
+      <article class="panel chart-panel">
+        <div class="section-heading"><div><div class="eyebrow">Динамика</div><h2>Прогресс по дням</h2></div><div class="chart-total" id="dailyCaption">Выполнение за день</div></div>
+        <div class="bars" id="dailyChart" aria-label="График прогресса по дням"></div>
+        <div class="bar-labels" id="dailyLabels"></div>
+        <div class="chart-legend"><i class="legend-dot"></i><span>Доля привычек, выполненных за день</span></div>
+      </article>
+      <article class="panel chart-panel">
+        <div class="section-heading"><div><div class="eyebrow">Ритм</div><h2>Прогресс по неделям</h2></div><div class="chart-total" id="weeklyCaption">Среднее за неделю</div></div>
+        <div class="weeks" id="weeklyChart" aria-label="График прогресса по неделям"></div>
+        <div class="bar-labels" id="weeklyLabels"></div>
+        <div class="chart-legend"><i class="legend-dot"></i><span>Среднее выполнение в каждой неделе</span></div>
+      </article>
+      <article class="panel chart-panel ring-panel">
+        <div class="section-heading"><div><div class="eyebrow">Цель месяца</div><h2>Общий прогресс</h2></div><div class="chart-total" id="monthDaysLabel">— дней</div></div>
+        <div class="ring-layout">
+          <div class="ring" id="monthRing" style="--value:0" role="img" aria-label="Общий прогресс за месяц: 0 процентов"><div class="ring-center"><strong id="monthPercent">0%</strong><span>за месяц</span></div></div>
+          <div class="ring-stats"><div class="ring-stat"><strong id="ringDone">0</strong><span>выполнено</span></div><div class="ring-stat"><strong id="ringLeft">0</strong><span>осталось по плану</span></div></div>
+        </div>
+        <div class="pace-note" id="paceNote">Темп за прошедшие дни: <strong>—</strong></div>
+      </article>
+    </section>
+
+    <section class="tracker-layout" aria-label="Календарь привычек и разбор">
+      <article class="panel tracker-panel">
+        <div class="tracker-head">
+          <div><div class="eyebrow">Календарь</div><h2>Мои привычки</h2><p id="calendarCaption">Отмечайте выполнение — показатели обновятся сразу.</p></div>
+          <div class="legend" aria-label="Обозначения"><span><i class="legend-box checked"></i>выполнено</span><span><i class="legend-box"></i>не отмечено</span></div>
+        </div>
+        <div class="table-scroll" id="tableScroll"></div>
+        <p class="footnote"><strong>Как считаются серии:</strong> день закрыт, когда отмечены все активные привычки. Серия продолжается после полного закрытия дня; сегодняшний день ещё не прерывает серию, пока не закончился.</p>
+      </article>
+      <aside class="panel habit-summary">
+        <div class="eyebrow">Разбор</div><h2>По привычкам</h2><p class="summary-sub" id="summaryCaption">Процент от плана месяца</p>
+        <div class="habit-rank" id="habitRank"></div>
+      </aside>
+    </section>
+    <p class="footnote">Данные хранятся в браузере. Чтобы видеть одни и те же отметки на телефоне и компьютере, подключите отдельный приватный GitHub-репозиторий в разделе синхронизации.</p>
+  </main>
+
+  <dialog id="habitDialog">
+    <form id="habitForm">
+      <div class="dialog-head"><div><h2 id="habitDialogTitle">Новая привычка</h2><p>Её можно будет отмечать в календаре и переименовать в любой момент.</p></div><button class="dialog-close" type="button" data-close="habitDialog" aria-label="Закрыть">×</button></div>
+      <div class="dialog-body">
+        <input type="hidden" id="habitId">
+        <div class="form-row"><label for="habitEmoji">Значок</label><input id="habitEmoji" maxlength="4" value="✨" autocomplete="off" aria-describedby="emojiHelp"><span class="form-help" id="emojiHelp">Можно оставить ✨ или поставить свой эмодзи.</span></div>
+        <div class="form-row"><label for="habitName">Название привычки</label><input id="habitName" maxlength="60" placeholder="Например, читать 10 страниц" required autocomplete="off"></div>
+        <div class="form-actions"><button class="button" type="button" data-close="habitDialog">Отмена</button><button class="button primary" type="submit">Сохранить</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="cloudDialog">
+    <div class="dialog-head"><div><h2>Синхронизация между устройствами</h2><p>Подключите приватный GitHub-репозиторий: отметки будут доступны на телефоне и компьютере.</p></div><button class="dialog-close" type="button" data-close="cloudDialog" aria-label="Закрыть">×</button></div>
+    <div class="dialog-body">
+      <div class="form-row"><label for="githubToken">GitHub токен</label><input id="githubToken" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"><span class="form-help">Создайте fine-grained token с доступом только к вашему репозиторию и разрешением <b>Contents: read and write</b>.</span></div>
+      <div class="form-row"><label for="repoId">Репозиторий для данных</label><input id="repoId" placeholder="имя-пользователя/ritm-data" autocomplete="off" spellcheck="false"><span class="form-help">Сначала создайте в GitHub отдельный репозиторий с видимостью «Приватный».</span></div>
+      <label class="checkline"><input id="rememberToken" type="checkbox"><span>Запомнить токен на этом устройстве. Если выключено, токен останется только до закрытия вкладки.</span></label>
+      <div class="form-actions" style="justify-content:space-between;flex-wrap:wrap"><button class="button small" id="disconnectCloud" type="button">Отключить</button><button class="button primary" id="connectRepo" type="button">Подключить и загрузить</button></div>
+      <div class="cloud-status" id="cloudStatus">При первом подключении текущие данные будут записаны в файл приватного репозитория. Если файл уже есть, приложение предложит загрузить его.</div>
+      <p class="form-help" style="margin:14px 0 0">Токен не добавляется в файлы приложения. Он сохраняется только в выбранном хранилище браузера и отправляется напрямую в GitHub API. <a href="https://github.com/new" target="_blank" rel="noopener" style="color:var(--green)">Создать приватный репозиторий ↗</a> · <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--green)">Создать fine-grained token ↗</a></p>
+    </div>
+  </dialog>
+
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      'use strict';
+      const DB_KEY = 'ritm-habit-tracker-v1';
+      const CLOUD_KEY = 'ritm-habit-tracker-cloud-v1';
+      const TOKEN_KEY = 'ritm-habit-tracker-github-token';
+      const FILE_NAME = 'ritm-habits.json';
+      const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      const EMOJIS = ['⏰','🧘','🏋️','🚿','🎯','📚','🌍','🍬','🍷','💻','📝','🌙'];
+      const STARTER_NAMES = ['Подъём в 6:00','Медитация 10 минут','Тренировка','Холодный душ','Главное дело дня','Читать 10 страниц','Учить язык','Без сахара','Без алкоголя','Создать сайт 1 час','План на завтра','Отбой до 23:00'];
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+      const localDate = (key) => { const [y,m,d] = key.split('-').map(Number); return new Date(y,m-1,d); };
+      const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+      const monthKey = (year, month) => `${year}-${String(month + 1).padStart(2,'0')}`;
+      const esc = (value) => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `h-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+      const starterData = () => ({ version: 1, habits: STARTER_NAMES.map((name, i) => ({ id: uid(), name, emoji: EMOJIS[i] })), marks: {}, updatedAt: new Date().toISOString() });
+      function loadState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(DB_KEY));
+          if (parsed && Array.isArray(parsed.habits) && parsed.marks && typeof parsed.marks === 'object') return parsed;
+        } catch (_) { /* damaged or unavailable local data falls back to a fresh tracker */ }
+        const initial = starterData();
+        try { localStorage.setItem(DB_KEY, JSON.stringify(initial)); } catch (_) { /* in-memory use remains available */ }
+        return initial;
+      }
+      let state = loadState();
+      let selectedYear = today.getFullYear();
+      let selectedMonth = today.getMonth();
+      let toastTimer;
+      let syncTimer;
+      let syncing = false;
+      let lastSyncText = '';
+
+      const $ = (id) => document.getElementById(id);
+      const monthSelect = $('monthSelect');
+      const currentMonthKey = () => monthKey(selectedYear, selectedMonth);
+      const isCurrentMonth = () => selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
+      const completionSet = (key) => new Set(Array.isArray(state.marks[key]) ? state.marks[key] : []);
+      const doneForDate = (key) => completionSet(key).size;
+      const dayFullyDone = (key) => state.habits.length > 0 && state.habits.every(h => completionSet(key).has(h.id));
+      const persist = (changed = true) => {
+        if (changed) state.updatedAt = new Date().toISOString();
+        try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch (_) { showToast('Не удалось сохранить данные в браузере. Освободите место или экспортируйте копию.'); }
+      };
+      function showToast(message) {
+        const toast = $('toast'); toast.textContent = message; toast.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+      }
+      function buildMonthOptions() {
+        const currentYear = today.getFullYear();
+        const start = new Date(currentYear - 5, 0, 1);
+        const end = new Date(currentYear + 5, 11, 1);
+        monthSelect.innerHTML = '';
+        for (const d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+          const option = document.createElement('option');
+          option.value = monthKey(d.getFullYear(), d.getMonth());
+          option.textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+          monthSelect.append(option);
+        }
+        monthSelect.value = currentMonthKey();
+      }
+      function setMonth(value) {
+        const [year, month] = value.split('-').map(Number);
+        selectedYear = year; selectedMonth = month - 1;
+        if (!Array.from(monthSelect.options).some(option => option.value === value)) {
+          const option = document.createElement('option'); option.value = value; option.textContent = `${MONTHS[selectedMonth]} ${selectedYear}`;
+          monthSelect.add(option);
+        }
+        monthSelect.value = value;
+        render();
+      }
+      function monthDates() { const result=[]; for(let d=1; d<=daysInMonth(selectedYear,selectedMonth); d++) result.push(new Date(selectedYear,selectedMonth,d)); return result; }
+      function lastRelevantDay() {
+        if (isCurrentMonth()) return today.getDate();
+        const last = new Date(selectedYear, selectedMonth + 1, 0);
+        return last < today ? last.getDate() : 0;
+      }
+      function calcCurrentStreak() {
+        if (!state.habits.length) return 0;
+        let cursor = new Date(today);
+        if (!dayFullyDone(dateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+        let count = 0;
+        while (cursor <= today && dayFullyDone(dateKey(cursor))) { count++; cursor.setDate(cursor.getDate() - 1); }
+        return count;
+      }
+      function calcMonthRecord() {
+        let best=0, run=0;
+        const cutoff = lastRelevantDay();
+        for(let day=1; day<=cutoff; day++) {
+          if (dayFullyDone(dateKey(new Date(selectedYear,selectedMonth,day)))) { run++; best=Math.max(best,run); }
+          else run=0;
+        }
+        return best;
+      }
+      function calcClosedDays() {
+        let total=0;
+        for(let day=1; day<=lastRelevantDay(); day++) if(dayFullyDone(dateKey(new Date(selectedYear,selectedMonth,day)))) total++;
+        return total;
+      }
+      function renderMetrics() {
+        const count = state.habits.length;
+        const days = daysInMonth(selectedYear, selectedMonth);
+        const fullPlan = count * days;
+        let completed = 0;
+        for (let d=1; d<=days; d++) completed += Math.min(count, doneForDate(dateKey(new Date(selectedYear, selectedMonth, d))));
+        const percent = fullPlan ? Math.round(completed / fullPlan * 100) : 0;
+        const elapsed = lastRelevantDay();
+        let elapsedCompleted = 0;
+        for (let d=1; d<=elapsed; d++) elapsedCompleted += Math.min(count, doneForDate(dateKey(new Date(selectedYear, selectedMonth, d))));
+        const elapsedPossible = elapsed * count;
+        const pace = elapsedPossible ? Math.round(elapsedCompleted / elapsedPossible * 100) : 0;
+        $('currentStreak').innerHTML = `${calcCurrentStreak()}<small>дней</small>`;
+        $('monthRecord').innerHTML = `${calcMonthRecord()}<small>дней</small>`;
+        $('closedDays').innerHTML = `${calcClosedDays()}<small>дней</small>`;
+        $('doneCount').innerHTML = `${completed}<small>из ${fullPlan}</small>`;
+        $('monthPercent').textContent = `${percent}%`;
+        $('monthRing').style.setProperty('--value', percent);
+        $('monthRing').setAttribute('aria-label', `Общий прогресс за месяц: ${percent} процентов`);
+        $('ringDone').textContent = completed;
+        $('ringLeft').textContent = Math.max(0, fullPlan - completed);
+        $('monthDaysLabel').textContent = `${days} дней`;
+        $('paceNote').innerHTML = `Темп за прошедшие дни: <strong>${elapsed ? `${pace}%` : 'месяц ещё не начался'}</strong>`;
+        $('calendarCaption').textContent = `${MONTHS[selectedMonth]} ${selectedYear} · ${count} привычек · отметки пересчитываются сразу`;
+        $('summaryCaption').textContent = `Процент от плана за ${MONTHS[selectedMonth].toLowerCase()}`;
+      }
+      function renderDailyChart() {
+        const host = $('dailyChart'), labels = $('dailyLabels');
+        host.innerHTML=''; labels.innerHTML='';
+        const days = lastRelevantDay();
+        $('dailyCaption').textContent = days ? `1–${days} ${MONTHS[selectedMonth].toLowerCase()}` : 'Пока нет прошедших дней';
+        if (!days || !state.habits.length) { host.className='empty-chart'; host.textContent = state.habits.length ? 'Данные появятся с началом месяца' : 'Добавьте привычки, чтобы увидеть прогресс'; return; }
+        host.className='bars';
+        for(let day=1; day<=days; day++) {
+          const key = dateKey(new Date(selectedYear, selectedMonth, day));
+          const value = Math.round(doneForDate(key) / state.habits.length * 100);
+          const col=document.createElement('div'); col.className='bar-column' + (key===dateKey(today)?' today':'');
+          col.title=`${day} ${MONTHS[selectedMonth].toLowerCase()}: ${value}% (${doneForDate(key)}/${state.habits.length})`;
+          col.setAttribute('aria-label', col.title);
+          const bar=document.createElement('div'); bar.className='bar'; bar.style.height=`${Math.max(value, 2)}%`; col.append(bar); host.append(col);
+          const label=document.createElement('span'); label.textContent = day===1 || day===days || day%5===0 ? day : ''; if (!label.textContent) label.className='hidden-label'; labels.append(label);
+        }
+      }
+      function mondayKey(date) { const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return dateKey(d); }
+      function renderWeeklyChart() {
+        const host=$('weeklyChart'), labels=$('weeklyLabels'); host.innerHTML=''; labels.innerHTML='';
+        const cutoff=lastRelevantDay(); $('weeklyCaption').textContent=cutoff ? 'Среднее за прошедшие дни' : 'Пока нет прошедших дней';
+        if(!cutoff || !state.habits.length) { host.className='empty-chart'; host.textContent=state.habits.length?'Данные появятся с началом месяца':'Добавьте привычки, чтобы увидеть прогресс'; return; }
+        host.className='weeks';
+        const bins=new Map();
+        for(let day=1; day<=cutoff; day++) {
+          const date=new Date(selectedYear,selectedMonth,day), key=mondayKey(date);
+          if(!bins.has(key)) bins.set(key,{start:day,end:day,done:0,possible:0});
+          const bin=bins.get(key); bin.end=day; bin.done+=Math.min(state.habits.length,doneForDate(dateKey(date))); bin.possible+=state.habits.length;
+        }
+        for(const [key,bin] of bins) {
+          const value=bin.possible?Math.round(bin.done/bin.possible*100):0;
+          const col=document.createElement('div'); col.className='week-column'; col.title=`Неделя ${bin.start}–${bin.end}: ${value}%`; col.setAttribute('aria-label',col.title);
+          const bar=document.createElement('div'); bar.className='bar'; bar.style.height=`${Math.max(value,3)}%`; col.append(bar);
+          const cap=document.createElement('span'); cap.textContent=`${bin.start}–${bin.end}`; col.append(cap); host.append(col);
+        }
+      }
+      function weekGroups(dates) {
+        const groups=[];
+        for(const date of dates) {
+          const key=mondayKey(date);
+          let group=groups.at(-1);
+          if(!group || group.key!==key) { group={key,days:[]}; groups.push(group); }
+          group.days.push(date);
+        }
+        return groups;
+      }
+      function renderTable() {
+        const host=$('tableScroll');
+        if(!state.habits.length) {
+          host.innerHTML='<div class="empty-habits"><strong>Пока нет привычек</strong>Добавьте первую — и календарь появится здесь.</div>';
+          return;
+        }
+        const dates=monthDates(), groups=weekGroups(dates);
+        const table=document.createElement('table'); table.setAttribute('aria-label',`Календарь привычек за ${MONTHS[selectedMonth]} ${selectedYear}`);
+        const thead=document.createElement('thead');
+        const weekRow=document.createElement('tr'); weekRow.className='week-row';
+        const title=document.createElement('th'); title.className='habit-col'; title.rowSpan=2; title.textContent='ПРИВЫЧКА'; weekRow.append(title);
+        for(const group of groups) { const th=document.createElement('th'); th.colSpan=group.days.length; th.textContent=`Неделя ${group.days[0].getDate()}–${group.days.at(-1).getDate()}`; weekRow.append(th); }
+        thead.append(weekRow);
+        const dayRow=document.createElement('tr'); dayRow.className='day-row';
+        for(const date of dates) { const th=document.createElement('th'); const key=dateKey(date); th.className='day-head'+(key===dateKey(today)?' today':''); th.title=`${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[selectedMonth]}`; th.innerHTML=`<span class="weekday">${WEEKDAYS[date.getDay()]}</span><span class="date-num">${date.getDate()}</span>`; dayRow.append(th); }
+        thead.append(dayRow); table.append(thead);
+        const tbody=document.createElement('tbody');
+        for(const habit of state.habits) {
+          const tr=document.createElement('tr');
+          const name=document.createElement('td'); name.className='habit-name';
+          name.innerHTML=`<div class="habit-cell"><span class="habit-emoji">${esc(habit.emoji||'✨')}</span><span class="habit-title" title="${esc(habit.name)}">${esc(habit.name)}</span><span class="habit-actions"><button class="tiny-action edit" type="button" title="Изменить привычку" aria-label="Изменить привычку ${esc(habit.name)}" data-edit="${esc(habit.id)}">✎</button><button class="tiny-action delete" type="button" title="Удалить привычку" aria-label="Удалить привычку ${esc(habit.name)}" data-delete="${esc(habit.id)}">×</button></span></div>`;
+          tr.append(name);
+          for(const date of dates) {
+            const key=dateKey(date), td=document.createElement('td');
+            const button=document.createElement('button'); button.type='button'; button.className='cell-button';
+            const checked=completionSet(key).has(habit.id); if(checked) button.classList.add('checked');
+            if(date>today && !checked) button.classList.add('future');
+            button.setAttribute('aria-pressed',String(checked));
+            button.setAttribute('aria-label',`${habit.name}: ${date.getDate()} ${MONTHS[selectedMonth]}, ${checked?'выполнено':'не отмечено'}`);
+            button.title=`${date.getDate()} ${MONTHS[selectedMonth]} · ${checked?'снять отметку':'отметить выполненной'}`;
+            button.dataset.toggle=habit.id; button.dataset.date=key;
+            td.append(button); tr.append(td);
+          }
+          tbody.append(tr);
+        }
+        table.append(tbody); host.replaceChildren(table);
+      }
+      function renderRank() {
+        const host=$('habitRank'); host.innerHTML='';
+        if(!state.habits.length) { host.innerHTML='<div class="summary-empty">Добавьте привычки, чтобы увидеть выполнение каждой.</div>'; return; }
+        const days=daysInMonth(selectedYear,selectedMonth), fullPlan=days;
+        const items=state.habits.map(habit=>{
+          let done=0; for(let day=1;day<=days;day++) if(completionSet(dateKey(new Date(selectedYear,selectedMonth,day))).has(habit.id)) done++;
+          return {...habit,done,percent:fullPlan?Math.round(done/fullPlan*100):0};
+        }).sort((a,b)=>b.percent-a.percent || a.name.localeCompare(b.name,'ru'));
+        for(const item of items) {
+          const row=document.createElement('div'); row.className='rank-item';
+          row.innerHTML=`<div class="rank-top"><span class="rank-name" title="${esc(item.name)}">${esc(item.emoji||'✨')} ${esc(item.name)}</span><span class="rank-percent">${item.percent}%</span></div><div class="rank-track" role="progressbar" aria-label="${esc(item.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.percent}"><div class="rank-fill" style="width:${item.percent}%"></div></div>`;
+          host.append(row);
+        }
+      }
+      function renderSyncStatus() {
+        const pill=$('syncPill'), label=$('syncLabel'), active=Boolean(getConfig().repoId);
+        pill.classList.toggle('online',active && !syncing); pill.classList.toggle('syncing',syncing);
+        label.textContent=syncing?'Синхронизация…':active?(lastSyncText||'GitHub подключён'):'Только в этом браузере';
+      }
+      function render() { renderMetrics(); renderDailyChart(); renderWeeklyChart(); renderTable(); renderRank(); renderSyncStatus(); }
+      function update(mutator) { mutator(); persist(true); render(); scheduleSync(); }
+      function toggleMark(id,key) {
+        const list=Array.isArray(state.marks[key])?[...state.marks[key]]:[];
+        const at=list.indexOf(id); if(at>=0) list.splice(at,1); else list.push(id);
+        if(list.length) state.marks[key]=list; else delete state.marks[key];
+        update(()=>{});
+      }
+      function openHabitDialog(habit=null) {
+        $('habitId').value=habit?.id||''; $('habitName').value=habit?.name||''; $('habitEmoji').value=habit?.emoji||'✨';
+        $('habitDialogTitle').textContent=habit?'Изменить привычку':'Новая привычка'; $('habitDialog').showModal();
+        setTimeout(()=>$('habitName').focus(),30);
+      }
+      function saveHabit(event) {
+        event.preventDefault(); const id=$('habitId').value; const name=$('habitName').value.trim();
+        if(!name) return; const emoji=$('habitEmoji').value.trim()||'✨';
+        update(()=>{ if(id) { const habit=state.habits.find(h=>h.id===id); if(habit){habit.name=name;habit.emoji=emoji;} } else state.habits.push({id:uid(),name,emoji}); });
+        $('habitDialog').close(); showToast(id?'Привычка обновлена':'Привычка добавлена');
+      }
+      function deleteHabit(id) {
+        const habit=state.habits.find(h=>h.id===id); if(!habit) return;
+        if(!confirm(`Удалить «${habit.name}» и все её отметки за прошлые месяцы?`)) return;
+        update(()=>{ state.habits=state.habits.filter(h=>h.id!==id); for(const [key,ids] of Object.entries(state.marks)){ const next=ids.filter(mark=>mark!==id); if(next.length) state.marks[key]=next; else delete state.marks[key]; } });
+        showToast('Привычка и её отметки удалены');
+      }
+      function exportData() {
+        const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+        a.href=url; a.download=`ritm-privychki-${dateKey(today)}.json`; document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url); showToast('Резервная копия скачана');
+      }
+      function importData(file) {
+        const reader=new FileReader(); reader.onload=()=>{ try { const parsed=JSON.parse(String(reader.result)); if(!Array.isArray(parsed.habits)||!parsed.marks||typeof parsed.marks!=='object') throw new Error('bad'); if(!confirm('Заменить текущие привычки и отметки данными из файла?')) return; state={version:1,habits:parsed.habits,marks:parsed.marks,updatedAt:new Date().toISOString()}; persist(true); render(); scheduleSync(); showToast('Данные импортированы'); } catch(_){showToast('Не удалось прочитать файл трекера');} }; reader.readAsText(file);
+      }
+      function getConfig() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY))||{}; } catch(_){return{};} }
+      function getToken() { return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || ''; }
+      function storeCloud(repoId, token, remember) {
+        localStorage.setItem(CLOUD_KEY,JSON.stringify({repoId}));
+        sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY);
+        (remember?localStorage:sessionStorage).setItem(TOKEN_KEY,token);
+      }
+      function showCloudStatus(message,kind='') { const node=$('cloudStatus'); node.textContent=message; node.className=`cloud-status${kind?' '+kind:''}`; }
+      function openCloudDialog() {
+        const config=getConfig(); $('repoId').value=config.repoId||''; $('githubToken').value=getToken(); $('rememberToken').checked=Boolean(localStorage.getItem(TOKEN_KEY));
+        showCloudStatus(config.repoId?'Репозиторий подключён. Можно загрузить его данные ещё раз или оставить автоматическую синхронизацию.':'Текущие отметки хранятся локально. Создайте приватный репозиторий для синхронизации на других устройствах.');
+        $('cloudDialog').showModal();
+      }
+      async function githubRequest(url,method='GET',body) {
+        const token=$('githubToken').value.trim()||getToken(); if(!token) throw new Error('Введите GitHub токен.');
+        const response=await fetch(url,{method,headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+        let data={}; try{data=await response.json();}catch(_){}
+        if(!response.ok) { const error=new Error(data.message||`GitHub ответил с кодом ${response.status}.`); error.status=response.status; throw error; }
+        return data;
+      }
+      function repoFileUrl(repoId) {
+        const [owner,repo]=repoId.split('/');
+        return `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${FILE_NAME}`;
+      }
+      function encodeBase64(text) {
+        const bytes=new TextEncoder().encode(text); let binary='';
+        for(let offset=0;offset<bytes.length;offset+=0x8000) binary+=String.fromCharCode(...bytes.subarray(offset,offset+0x8000));
+        return btoa(binary);
+      }
+      function decodeBase64(text) {
+        const binary=atob(text.replace(/\s/g,'')); const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        return new TextDecoder().decode(bytes);
+      }
+      async function writeRepoData(repoId,sha=null) {
+        return githubRequest(repoFileUrl(repoId),'PUT',{message:'Обновление трекера привычек',content:encodeBase64(JSON.stringify(state,null,2)),...(sha?{sha}:{})});
+      }
+      async function connectRepo() {
+        const token=$('githubToken').value.trim(); const repoId=$('repoId').value.trim();
+        if(!token){showCloudStatus('Введите GitHub токен с разрешением Contents: read and write.','error');return;}
+        if(!/^[^/\s]+\/[^/\s]+$/.test(repoId)){showCloudStatus('Укажите владельца и имя репозитория, например: имя-пользователя/ritm-data.','error');return;}
+        $('connectRepo').disabled=true; showCloudStatus('Подключаю приватный репозиторий…');
+        try {
+          let remote;
+          try { remote=await githubRequest(repoFileUrl(repoId)); }
+          catch(error) {
+            if(error.status!==404) throw error;
+            if(!confirm(`Файл ${FILE_NAME} пока не найден. Создать его в ${repoId} и загрузить текущие данные?`)) return;
+            await writeRepoData(repoId); storeCloud(repoId,token,$('rememberToken').checked); lastSyncText='Данные загружены'; renderSyncStatus(); $('cloudDialog').close(); showToast('Репозиторий подключён; синхронизация включена'); return;
+          }
+          const parsed=JSON.parse(decodeBase64(remote.content||''));
+          if(!Array.isArray(parsed.habits)||!parsed.marks||typeof parsed.marks!=='object') throw new Error('Файл в репозитории имеет неверный формат.');
+          if(!confirm('Заменить локальные данные данными из приватного репозитория?')) return;
+          state={version:1,habits:parsed.habits,marks:parsed.marks,updatedAt:parsed.updatedAt||new Date().toISOString()}; persist(false); storeCloud(repoId,token,$('rememberToken').checked); render(); lastSyncText='Данные загружены'; renderSyncStatus(); $('cloudDialog').close(); showToast('Данные загружены; синхронизация включена');
+        } catch(error) { showCloudStatus(`Не получилось подключить репозиторий: ${error.message}`,'error'); }
+        finally {$('connectRepo').disabled=false;}
+      }
+      async function syncWithRepo({silent=false}={}) {
+        const config=getConfig(), token=getToken(); if(!config.repoId||!token||syncing) return;
+        const syncStartedAt=state.updatedAt;
+        syncing=true; renderSyncStatus();
+        try {
+          let remote;
+          try { remote=await githubRequest(repoFileUrl(config.repoId)); }
+          catch(error) { if(error.status!==404) throw error; await writeRepoData(config.repoId); remote=null; }
+          if(remote) {
+            const parsed=JSON.parse(decodeBase64(remote.content||''));
+            const localTime=Date.parse(state.updatedAt||'')||0, remoteTime=Date.parse(parsed.updatedAt||'')||0;
+            if(remoteTime>localTime && Array.isArray(parsed.habits) && parsed.marks && typeof parsed.marks==='object') { state={version:1,habits:parsed.habits,marks:parsed.marks,updatedAt:parsed.updatedAt}; persist(false); render(); }
+            else await writeRepoData(config.repoId,remote.sha);
+          }
+          lastSyncText='Синхронизировано';
+        } catch(error) { lastSyncText='Ошибка синхронизации'; if(!silent) showToast(`Синхронизация не удалась: ${error.message}`); }
+        finally { syncing=false; renderSyncStatus(); if(state.updatedAt!==syncStartedAt) scheduleSync(); }
+      }
+      function scheduleSync() { if(!getConfig().repoId||!getToken()) return; clearTimeout(syncTimer); syncTimer=setTimeout(()=>syncWithRepo({silent:true}),900); }
+      function disconnectCloud() {
+        localStorage.removeItem(CLOUD_KEY); localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY); lastSyncText=''; $('cloudDialog').close(); renderSyncStatus(); showToast('Синхронизация отключена; локальные данные сохранены');
+      }
+
+      buildMonthOptions(); render();
+      if(getConfig().repoId && getToken()) syncWithRepo({silent:true});
+      $('prevMonth').addEventListener('click',()=>{const d=new Date(selectedYear,selectedMonth-1,1);setMonth(monthKey(d.getFullYear(),d.getMonth()));});
+      $('nextMonth').addEventListener('click',()=>{const d=new Date(selectedYear,selectedMonth+1,1);setMonth(monthKey(d.getFullYear(),d.getMonth()));});
+      monthSelect.addEventListener('change',()=>setMonth(monthSelect.value));
+      $('addHabitTop').addEventListener('click',()=>openHabitDialog());
+      $('habitForm').addEventListener('submit',saveHabit);
+      $('tableScroll').addEventListener('click',event=>{
+        const edit=event.target.closest('[data-edit]'); if(edit){const habit=state.habits.find(h=>h.id===edit.dataset.edit);if(habit)openHabitDialog(habit);return;}
+        const del=event.target.closest('[data-delete]'); if(del){deleteHabit(del.dataset.delete);return;}
+        const cell=event.target.closest('[data-toggle]'); if(cell) toggleMark(cell.dataset.toggle,cell.dataset.date);
+      });
+      $('cloudOpen').addEventListener('click',openCloudDialog);
+      $('connectRepo').addEventListener('click',connectRepo);
+      $('disconnectCloud').addEventListener('click',disconnectCloud);
+      $('exportBtn').addEventListener('click',exportData);
+      $('importBtn').addEventListener('click',()=>$('importFile').click());
+      $('importFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file)importData(file);event.target.value='';});
+      document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
+      $('cloudDialog').addEventListener('close',()=>{if($('githubToken').value.trim() && getConfig().repoId) storeCloud(getConfig().repoId,$('githubToken').value.trim(),$('rememberToken').checked);});
+      window.addEventListener('focus',()=>{if(getConfig().repoId&&getToken())syncWithRepo({silent:true});});
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden&&getConfig().repoId&&getToken())syncWithRepo({silent:true});});
+      if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    })();
+  </script>
+</body>
+</html>
+
